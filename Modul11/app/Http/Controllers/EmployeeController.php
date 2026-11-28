@@ -13,14 +13,13 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-        $pageTitle = 'Employee List';
+       $pageTitle = 'Employee List';
 
-        // RAW SQL QUERY
-        $employees = DB::select('
-            select *, employees.id as employee_id, positions.name as position_name
-            from employees
-            left join positions on employees.position_id = positions.id
-        ');
+        // QUERY BUILDER
+        $employees = DB::table('employees')
+            ->select('*', 'employees.id as employee_id', 'positions.name as position_name')
+            ->leftJoin('positions', 'employees.position_id', '=', 'positions.id')
+            ->get();
 
         return view('employee.index', [
             'pageTitle' => $pageTitle,
@@ -34,8 +33,9 @@ class EmployeeController extends Controller
     public function create()
     {
         $pageTitle = 'Create Employee';
-        // RAW SQL Query
-        $positions = DB::select('select * from positions');
+
+        // QUERY BUILDER
+        $positions = DB::table('positions')->get();
 
         return view('employee.create', compact('pageTitle', 'positions'));
     }
@@ -48,13 +48,14 @@ class EmployeeController extends Controller
         $messages = [
             'required' => ':Attribute harus diisi.',
             'email' => 'Isi :attribute dengan format yang benar',
-            'numeric' => 'Isi :attribute dengan angka'
+            'numeric' => 'Isi :attribute dengan angka',
+            'unique' => ':Attribute sudah terdaftar, gunakan email lain.'
         ];
 
         $validator = Validator::make($request->all(), [
             'firstName' => 'required',
             'lastName' => 'required',
-            'email' => 'required|email',
+            'email' => 'required|email|unique:employees,email',
             'age' => 'required|numeric',
         ], $messages);
 
@@ -81,16 +82,14 @@ class EmployeeController extends Controller
     {
         $pageTitle = 'Employee Detail';
 
-        // RAW SQL QUERY
-        $employee = collect(DB::select('
-            select *, employees.id as employee_id, positions.name as position_name
-            from employees
-            left join positions on employees.position_id = positions.id
-            where employees.id = ?
-        ', [$id]))->first();
+        // QUERY BUILDER
+        $employee = DB::table('employees')
+            ->select('*', 'employees.id as employee_id', 'positions.name as position_name')
+            ->leftJoin('positions', 'employees.position_id', '=', 'positions.id')
+            ->where('employees.id', $id)
+            ->first();
 
         return view('employee.show', compact('pageTitle', 'employee'));
-
     }
 
     /**
@@ -98,7 +97,13 @@ class EmployeeController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        $pageTitle = 'Edit Employee';
+
+        // QUERY BUILDER
+        $positions = DB::table('positions')->get();
+        $employee = DB::table('employees')->where('id', $id)->first();
+
+        return view('employee.edit', compact('pageTitle', 'positions', 'employee'));
     }
 
     /**
